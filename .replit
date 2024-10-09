@@ -1,2 +1,3 @@
 language = "bash"
 run = "/bin/bash"
+modules = ["python-3.11"]
