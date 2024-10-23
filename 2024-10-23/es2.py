@@ -2,22 +2,35 @@ import pandas as pd
 import matplotlib.pyplot as plt
 
 # Specifica il percorso al file .dat
-file_path = 'Nemo_6670.dat'
+file_path = 'Nemo.dat'
 
-# Carica il file con pandas utilizzando il separatore appropriato (spazi multipli)
-# Il file contiene un'intestazione che inizia con '#', quindi saltiamo la prima riga
+# Prova a caricare il file
 try:
-    # Salta la riga di commento che inizia con '#'
+    # Carica il file con delimitatori di spazio e ignora la riga di commento
     df = pd.read_csv(file_path, delim_whitespace=True, comment='#', header=None, 
                      names=["MsuH", "m_ini", "logL", "logTe", "M_ass", "b_ass", "y_ass", 
                             "m_app", "b_y", "dist", "abs_dist", "ID_parent", "age_parent"])
+    print("File caricato con successo!")
 except FileNotFoundError:
     print(f"Errore: Il file '{file_path}' non è stato trovato.")
     exit()
+except Exception as e:
+    print(f"Errore durante il caricamento del file: {e}")
+    exit()
+
+# Controlla che il DataFrame contenga dati
+if df.empty:
+    print("Errore: Il DataFrame è vuoto. Controlla il file.")
+    exit()
+
+# Mostra le prime righe del DataFrame per debug
+print("Prime righe del DataFrame:")
+print(df.head())
 
 # Controlla che le colonne 'M_ass' e 'b_y' esistano nel DataFrame
 if 'M_ass' not in df.columns or 'b_y' not in df.columns:
     print("Errore: Il file non contiene le colonne 'M_ass' o 'b_y'.")
+    print("Colonne disponibili:", df.columns)
     exit()
 
 # Crea il grafico scatter
