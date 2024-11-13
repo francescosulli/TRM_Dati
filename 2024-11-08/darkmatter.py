@@ -1,41 +1,71 @@
 import numpy as np
 import matplotlib.pyplot as plt
-from scipy.stats import lognorm, norm
+from scipy.stats import norm, lognorm
+from scipy.integrate import cumulative_trapezoid
 
-# Parametri della distribuzione lognormale per la massa di DM
-mu_DM_true = 14  # Cambiato da 1e14 a 14 per evitare overflow
-sigma_DM_true = 0.5  # Deviazione standard della distribuzione lognormale
 
-# Parametri dell'errore di misura
-mu_DM_oss = 0  # Media dell'errore (zero)
-sigma_DM_oss = 1e13  # Deviazione standard dell'errore
+xarr = np.linspace(-5, 5, 10000)
 
-# Numero di campioni
-num_samples = 1000
+#parametri DM osservata (distribuzione normale)
+obs_dm_mean = 0.
+obs_dm_sigma = 0.3
 
-# 1. Simulazione Monte Carlo
-# Generazione della massa di DM intrinseca da una lognormale
-mass_DM = lognorm.rvs(sigma_DM_true, scale=np.exp(mu_DM_true), size=num_samples)
+#parametri DM vera (distribuzione lognormale)
+true_dm_mean = np.log(0.6)
+true_dm_sigma = 0.7
 
-# Aggiunta dell'errore di misura da una normale
-mass_DM_obs = mass_DM + np.random.normal(mu_DM_oss, sigma_DM_oss, num_samples)
+#PDF teoriche
+obs_dm_pdf = norm.pdf(xarr, loc=obs_dm_mean, scale=obs_dm_sigma)
+true_dm_pdf = lognorm.pdf(xarr, true_dm_sigma, scale=np.exp(true_dm_mean))
 
-# 2. Distribuzione teorica della Massa Osservata
-# La distribuzione di masse osservate si ottiene convolvendo la lognormale e la normale
-# La deviazione standard combinata si calcola come sqrt(sigma_DM_true^2 + sigma_DM_oss^2)
-sigma_DM_obs = np.sqrt(sigma_DM_true**2 + sigma_DM_oss**2)
+#MC
+n_samples = 100000
+sample_obs_dm = np.random.normal(size=n_samples, loc=obs_dm_mean, scale=obs_dm_sigma)
+sample_true_dm = np.random.lognormal(size=n_samples, mean=true_dm_mean, sigma=true_dm_sigma)
+sample_combined = sample_obs_dm + sample_true_dm
 
-# Plot della distribuzione osservata tramite simulazione e distribuzione teorica
-x = np.linspace(min(mass_DM_obs), max(mass_DM_obs), 500)
-
-# Calcolo della distribuzione teorica analitica
-pdf_DM_obs = norm.pdf(x, mu_DM_true, sigma_DM_obs)
-
-# Grafico
-plt.hist(mass_DM_obs, bins=30, density=True, alpha=0.6, color='skyblue', label="Campione Massa DM Osservata (Monte Carlo)")
-plt.plot(x, pdf_DM_obs, 'r', linewidth=2, label="Distribuzione Teorica (Convoluzione)")
-plt.xlabel("Massa di Materia Oscura Osservata (kg)")
-plt.ylabel("Densità di Probabilità")
+#plot singoli
+plt.figure(figsize=(6, 4))
+plt.hist(sample_obs_dm, bins=71, density=True, alpha=0.5, label='Campioni Errore di Misura')
+plt.hist(sample_true_dm, bins=71, density=True, alpha=0.5, label='Campioni DM Vera')
+plt.plot(xarr, obs_dm_pdf, label='PDF Errore di Misura')
+plt.plot(xarr, true_dm_pdf, label='PDF DM Vera')
+plt.xlabel('Valore')
+plt.ylabel('Densità')
 plt.legend()
-plt.title("Distribuzione della Massa di Materia Oscura Osservata")
+plt.title("Distribuzioni Singole")
+plt.xlim(-2.5, 5)
+plt.show()
+
+#plot distribuzione combinata osservata
+plt.figure(figsize=(6, 4))
+plt.hist(sample_combined, bins=71, density=True, alpha=0.5, label='Campioni Massa DM Osservata')
+plt.plot(xarr, obs_dm_pdf, label='PDF Errore di Misura')
+plt.plot(xarr, true_dm_pdf, label='PDF DM Vera')
+
+#convoluzione tra le due PDF teoriche
+convoluzione = np.convolve(true_dm_pdf, obs_dm_pdf, mode='same')
+convoluzione_normalizzata = convoluzione / np.trapezoid(convoluzione, xarr)
+plt.plot(xarr, convoluzione_normalizzata, 'r-', label='Convoluzione PDF teoriche')
+
+#calc cumulativa
+yarr = convoluzione_normalizzata
+cumulativa = cumulative_trapezoid(yarr, xarr, initial=0)
+
+#quantili della cumulativa
+quantili = [0.16, 0.5, 0.84]
+percentili = [np.interp(q, cumulativa, xarr) for q in quantili]
+
+# Stampa solo i numeri, senza np.float64
+print('Quantili teorici (PDF):', [p.item() for p in percentili])
+
+#quantili dei combinati
+campioni_quantili = np.percentile(sample_combined, [16, 50, 84])
+print('Quantili campioni:', campioni_quantili)
+
+plt.xlabel('Valore')
+plt.ylabel('Densità')
+plt.legend()
+plt.title("Distribuzione della Massa DM Osservata")
+plt.xlim(-2.5, 5)
 plt.show()
