@@ -5,7 +5,7 @@ import corner
 
 # Caricamento dati
 data = np.genfromtxt("Esercizio4.csv", delimiter=",", names=True)
-lnMtot = np.log(data["Mtot"])
+lnMtot = np.log(data["Mass"])  # Cambiato "Mtot" in "Mass"
 lnMstar = np.log(data["Mstar"])
 lnMgas = np.log(data["Mgas"])
 
@@ -95,4 +95,17 @@ plt.scatter(lnMtot, lnMgas, label="Dati Mgas", color="C1", s=10)
 plt.xlabel("ln M_tot")
 plt.ylabel("ln M_* / ln M_gas")
 plt.legend()
+plt.show()
+
+# Traccia dell'evoluzione dei parametri durante il campionamento
+fig, axes = plt.subplots(ndim, 1, figsize=(10, ndim * 2), sharex=True)
+
+for i, ax in enumerate(axes):
+    for walker in sampler.chain[:, :, i]:
+        ax.plot(walker, alpha=0.3)
+    ax.set_ylabel(labels[i])
+    ax.set_title(f"Evoluzione di {labels[i]} durante il campionamento")
+
+axes[-1].set_xlabel("Step number")
+plt.tight_layout()
 plt.show()
